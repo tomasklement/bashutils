@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# Checks if numeric value is in array
+# Globals:
+#   None
+# Arguments:
+#   Number
+#   Array of nubers
+# Returns:
+#   True or false
+function arr::contains_number {
+  local value
+  local values
+
+  values=( $(echo "${2}") )
+
+  for value in "${values[@]}"
+  do
+    if [[ "${1}" -eq "${value}" ]]; then
+      true
+      return
+    fi
+  done
+
+  false
+}
+
+# Checks if given string is in array
+# Globals:
+#   None
+# Arguments:
+#   String
+#   Array of strings
+# Returns:
+#   Is in array
+function arr::contains_string {
+  local needle
+  local haystack
+  local string
+
+  needle="${1}"
+
+  shift
+
+  haystack=( "$@" )
+
+  for string in "${haystack[@]}"
+    do
+      if [[ "${needle}" == "${string}" ]]; then
+        true
+        return
+      fi
+    done
+
+  false
+}
+
+# Joins array values to string separated by given separator
+# Globals:
+#   None
+# Arguments:
+#   Separator (one or more chars)
+#   Array of values
+# Returns:
+#   Joined string
+function arr::join {
+  local separator
+  local item
+  local result
+  local add_separator
+
+  separator="${1}"
+  result=""
+  add_separator=false
+
+  shift
+
+  for item in "$@"
+  do
+    if [[ "${add_separator}" = false ]]; then
+      result="${item}"
+      add_separator=true
+    else
+      result="${result}${separator}${item}"
+    fi
+  done
+
+  echo -n "${result}"
+}

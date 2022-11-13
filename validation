@@ -1,0 +1,76 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source "${SCRIPT_DIR}/error"
+
+# Check if variable is int
+# Globals:
+#   None
+# Arguments:
+#   String variable to be checked
+# Returns:
+#   True or false
+function val::is_int {
+  local reg_exp='^[0-9]+$'
+
+  if [[ $1 =~ $reg_exp ]]; then
+    true
+    return;
+  fi
+
+  false
+}
+
+# Filters given variable names and returns variable names of variables which are
+# empty or not defined
+# Globals:
+#   None
+# Arguments:
+#   Names of variables to be checked
+# Returns:
+#   Names of variables which are empty or not defined
+function val::filter_empty_variable_names {
+  local variable_name
+  local missing_items
+
+  missing_items=()
+  for variable_name in "$@"
+  do
+    if [[ -z "${!variable_name}" ]]; then
+        missing_items+=( "${variable_name}" )
+    fi
+  done
+
+  echo "${missing_items[@]}"
+}
+
+
+# Exits with error code in case any of given variables are empty
+# empty or not defined
+# Globals:
+#   None
+# Arguments:
+#   Exit code in case of error
+#   Names of variables to be checked
+# Returns:
+#   None
+function val::check_required_variables {
+  local variable_names
+  local error_code
+
+  error_code="${1}"
+
+  shift
+
+  variable_names=( $( val::filter_empty_variable_names "$@" ) )
+
+  if [[ "${#variable_names[@]}" -eq 0 ]]; then
+    return
+  fi
+
+  variable_names=$( arr::join ", " "${variable_names[@]}" )
+
+  err::throw "${error_code}" \
+    "Missing required configuration variables: ${variable_names}"
+}

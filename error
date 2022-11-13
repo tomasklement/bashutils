@@ -1,0 +1,47 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source "${SCRIPT_DIR}/array"
+
+# Writes given message to STDERR
+# Globals:
+#   None
+# Arguments:
+#   Error message(s)
+# Returns:
+#   Error message to STDERR
+function err::print {
+  echo "$@" >&2
+}
+
+
+# Calls exit with given exit code. Prints given message to STDERR
+# Globals:
+#   None
+# Arguments:
+#   Exit code
+#   Error message(s)
+# Returns:
+#   Error message to STDERR
+function err::throw {
+  local exit_code="${1}"
+
+  shift
+  err::print "$@"
+  exit "${exit_code}"
+}
+
+# Prints invalid options message
+# Globals:
+#   None
+# Arguments:
+#   Option names
+# Returns:
+#   Message enumerating invalid script options
+function err::print_invalid_options {
+  local arguments
+
+  arguments=$( arr::join "\", \"" "$@")
+  err::print "Unknown options: \"${arguments}\""
+}

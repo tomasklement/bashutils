@@ -1,0 +1,57 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source "${SCRIPT_DIR}/error"
+
+# Makes given file and writes given content to it. Prints error and exits when it is not possible
+# Globals:
+#   None
+# Arguments:
+#   File name
+#   File content
+# Returns:
+#   None
+function file::create {
+  ( echo "${2}" > "${1}" ) 2>/dev/null
+
+  if [[ "$?" -gt 0 ]]; then
+    err::print "Cannot create file \"${1}\". Check the permissions"
+    exit 13
+  fi
+}
+
+# Creates file with current timestamp in it
+# Globals:
+#   None
+# Arguments:
+#   File name
+# Returns:
+#   None
+function file::timestamp {
+  local timestamp
+
+  timestamp=$( date +%s )
+
+  file::create "${1}" "${timestamp}"
+}
+
+# Removes lock file
+# Globals:
+#   None
+# Arguments:
+#   Lock file name
+# Returns:
+#   None
+function file::remove_lock {
+  if [[ ! -f "${1}" ]]; then
+    return
+  fi
+
+  rm "${1}" 2>/dev/null
+
+  if [[ "$?" -gt 0 ]]; then
+    err::print "Cannot remove lock file \"${1}\". Check the permissions"
+    exit 13
+  fi
+}

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Get count of substrings in given string
+# Globals:
+#   None
+# Arguments:
+#   String (haystack)
+#   Substring (needle)
+# Returns:
+#   Count of occurences
+function str::occurences_count {
+  echo "${1}" \
+    | tr " " "\n" \
+    | grep -c "${2}"
+}
