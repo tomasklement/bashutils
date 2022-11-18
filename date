@@ -1,0 +1,24 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# Formats timestamp
+# Globals:
+#   None
+# Arguments:
+#   Timestamp
+#   Format (see bash "date" command)
+# Returns:
+#   Formatted date and time
+function date::format_timestamp {
+  local formatted
+
+  # Try ubuntu way
+  formatted=$( date -d "@${1}" "+'${2}'" 2>/dev/null )
+  if [[ "$?" -gt 0 ]]; then
+    # Try macOS way
+    formatted=$( date -r "${1}" "+'${2}'" 2>/dev/null )
+  fi
+
+  echo "${formatted}"
+}
