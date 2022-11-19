@@ -1,0 +1,56 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# Checks if there is available service in the network. Writes descriptive
+# messages to stdout
+# Globals:
+#   None
+# Arguments:
+#   IP address or hostname
+#   Port number
+#   MAC address of the server (can be omitted)
+# Returns:
+#   True or false
+function net::is_service_online {
+    local command_result
+    local error_text
+
+    # Check if given port is opened on given host
+    # (error output must be redirected - netcat puts success messages to it)
+    nc -z -G 3 "${1}" "${2}" &> /dev/null
+    if [[ "$?" -gt 0 ]]; then
+        echo "Service ${1}:${2} is not available"
+        false
+        return
+    fi
+
+    # In case MAC address is not provided, no additional check is needed
+    if [[ -z "$3" ]]; then
+        true
+        return
+    fi
+
+
+    # Check if detected machine has given MAC address
+    command_result=$( arp -a | grep "${3}" )
+    if [[ "$?" -gt 0 ]]; then
+      error_text="Service ${1}:${2} is online but "
+      error_text+="MAC address ${3} not found in network"
+      echo "${error_text}"
+      false
+      return
+    fi
+
+    echo "${command_result}" | grep "${1}"
+    if [[ "$?" -gt 0 ]] ; then
+      error_text="Service ${1}:${2} is online but "
+      error_text+="MAC address doesn't match ${3}"
+      echo "${error_text}"
+      false
+      return
+    fi
+
+    true
+    return
+}
