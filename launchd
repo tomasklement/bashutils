@@ -1,0 +1,158 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source "${SCRIPT_DIR}/error"
+
+# Return path to job file
+# Globals:
+#   HOME User home directory path
+# Arguments:
+#   Job name, i.e. application.com.john.fancyscript
+# Returns:
+#   None
+function mld::get_job_path {
+  local job_filename
+  local job_path
+
+  job_filename="${1}.plist"
+  job_path="${HOME}/Library/LaunchAgents/${job_filename}"
+
+  echo "${job_path}"
+}
+
+# Create job file content
+# Globals:
+#   HOME User home directory path
+# Arguments:
+#   Job name, i.e. application.com.john.fancyscript
+#   Name of main job executable file in current working dir
+#   Path to template file of final *.plist file (defaults to:
+#     launch_agent_template.plist)
+# Returns:
+#   None
+function mld::create_job_content {
+  local job_xml
+  local working_dir
+  local job_path
+  local template_path
+
+  if [[ -z "${3}" ]]; then
+    template_path="launch_agent_template.plist"
+  else
+    template_path="${3}"
+  fi
+
+  working_dir=$( pwd )
+  job_path="${working_dir}/${2}"
+  job_xml=$( cat "${template_path}" )
+  printf "${job_xml}"\
+    "${1}" "${job_path}" "${working_dir}"
+}
+
+# Creates job
+# Globals:
+#   HOME User home directory path
+# Arguments:
+#   Job name, i.e. application.com.john.fancyscript
+#   Name of main job executable file
+#   Path to template file of final *.plist file (defaults to:
+#     launch_agent_template.plist)
+# Returns:
+#   None
+function mld::create_job {
+  local job_xml
+  local job_path
+
+  if mld::is_job_running "${1}"; then
+    echo "Removing previously started job"
+    mld::remove_job "${1}"
+  fi
+
+  job_path=$( mld::get_job_path "${1}" )
+  job_xml=$( mld::create_job_content "${1}" "${2}" )
+
+  echo "${job_xml}" > "${job_path}"
+
+  echo "Loading job \"${job_path}\""
+
+  mld::start_job "${1}"
+}
+
+# Starts job
+# Globals:
+#   HOME User home directory path
+# Arguments:
+#   Job name, i.e. application.com.john.fancyscript
+# Returns:
+#   None
+function mld::start_job {
+  local job_path
+
+  job_path=$( mld::get_job_path "${1}" )
+
+  if [[ ! -r "${job_path}" ]]; then
+    err::throw 5 "Job file \"${job_path}\" doesn't exist"
+  fi
+
+  launchctl load -w "${job_path}"
+}
+
+# Stops job
+# Globals:
+#   HOME User home directory path
+# Arguments:
+#   Job name, i.e. application.com.john.fancyscript
+# Returns:
+#   None
+function mld::stop_job {
+  local job_path
+
+  job_path=$( mld::get_job_path "${1}" )
+
+  if ! mld::is_job_running "${1}"; then
+    echo "Stop skipped - job is not running"
+    return
+  fi
+
+  launchctl unload -w "${job_path}"
+  launchctl remove "${1}"
+}
+
+# Removes job
+# Globals:
+#   HOME User home directory path
+# Arguments:
+#   Job name, i.e. application.com.john.fancyscript
+# Returns:
+#   None
+function mld::remove_job {
+  local job_path
+
+  job_path=$( mld::get_job_path "${1}" )
+
+  mld::stop_job "${1}"
+
+  if [[ -e "${job_path}" ]]; then
+    rm "${job_path}"
+  else
+    echo "Job file \"${job_path}\" not found"
+  fi
+}
+
+# Checks if job is running
+# Globals:
+#   None
+# Arguments:
+#   Job name, i.e. application.com.john.fancyscript
+# Returns:
+#   True when running, False otherwise
+function mld::is_job_running {
+  if launchctl list | grep -q "${1}"; then
+    true
+    return
+  fi
+
+  false
+  return
+}
