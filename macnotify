@@ -1,0 +1,26 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+# Shows notification on Mac
+# Globals:
+#   None
+# Arguments:
+#   Notification title
+#   Notification message
+#   Notification sound (see /System/Library/Sounds for avail. sounds) (optional)
+# Returns:
+#   Nothing
+function ntf::notify {
+    local command
+    local title="${1//\"/\\\"}"
+    local message="${2//\"/\\\"}"
+
+    command="display notification \"${message}\" with title \"${title}\""
+
+    if [[ ! -z "${3}" ]]; then
+      command+=" sound name \"${3}\""
+    fi
+
+    osascript -e "${command}"
+}
