@@ -2,6 +2,78 @@
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+# Returns human-readable relative time between an ISO date and now
+# Globals:
+#   None
+# Arguments:
+#   ISO 8601 date (e.g. "2026-05-15", "2026-05-15T10:00:00", "2026-05-15T10:00:00Z")
+# Returns:
+#   Relative description, e.g. "3 days ago", "after 5 minutes", "just now"
+function date::relative {
+  local iso_date="${1}"
+  local now
+  local then
+  local diff
+  local abs_diff
+  local unit
+  local count
+
+  now=$(date "+%s")
+
+  # Try Linux way first
+  then=$(date -d "${iso_date}" "+%s" 2>/dev/null)
+  if [[ $? -gt 0 ]]; then
+    # macOS fallback — strip timezone, parse datetime or date-only
+    local clean_date
+    if [[ "${iso_date}" == *T* ]]; then
+      clean_date="${iso_date:0:19}"
+      then=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${clean_date}" "+%s" 2>/dev/null)
+    else
+      clean_date="${iso_date:0:10}"
+      then=$(date -j -f "%Y-%m-%d" "${clean_date}" "+%s" 2>/dev/null)
+    fi
+  fi
+
+  if [[ -z "${then}" ]]; then
+    echo "invalid date" >&2
+    return 1
+  fi
+
+  diff=$(( then - now ))
+  abs_diff=$(( diff < 0 ? -diff : diff ))
+
+  if (( abs_diff < 5 )); then
+    echo "just now"
+    return
+  elif (( abs_diff < 60 )); then
+    count="${abs_diff}"
+    unit="second"
+  elif (( abs_diff < 3600 )); then
+    count=$(( abs_diff / 60 ))
+    unit="minute"
+  elif (( abs_diff < 86400 )); then
+    count=$(( abs_diff / 3600 ))
+    unit="hour"
+  elif (( abs_diff < 2592000 )); then
+    count=$(( abs_diff / 86400 ))
+    unit="day"
+  elif (( abs_diff < 31536000 )); then
+    count=$(( abs_diff / 2592000 ))
+    unit="month"
+  else
+    count=$(( abs_diff / 31536000 ))
+    unit="year"
+  fi
+
+  (( count != 1 )) && unit="${unit}s"
+
+  if (( diff < 0 )); then
+    echo "${count} ${unit} ago"
+  else
+    echo "after ${count} ${unit}"
+  fi
+}
+
 # Formats timestamp
 # Globals:
 #   None
